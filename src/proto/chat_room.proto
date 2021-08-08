@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+enum Action {
+  CONNECTED   = 0; // 连接成功
+  HEARTBEAT   = 1; // 心跳检测
+  MSG_TO_USER = 2; // 发消息到用户
+}
+
+message Package {
+  Action action  = 1;
+  bytes  content = 2;
+}
+
+message ConnectedReply {
+  uint64 uid        = 1; // 用户ID
+  string session_id = 2; // 会话ID
+}
+
+message MsgToUser {
+  uint64 seq          = 1; // 消息序列号
+  uint64 sender_uid   = 2; // 发送方
+  uint64 receiver_uid = 3; // 接收方
+  uint64 message_id   = 4; // 消息ID
+  string content      = 5; // 消息内容
+  uint64 timestamp    = 6; // 时间戳
+}
