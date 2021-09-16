@@ -13,7 +13,7 @@ pub enum IMError {
 impl Display for IMError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            IMError::NotEnoughData => write!(f, "Not enougth data"),
+            IMError::NotEnoughData => write!(f, "Not enough data"),
             IMError::ContentMaxLen => write!(f, "The message exceeds the maximum length limit"),
             IMError::TcpStreamEOF => write!(f, "EOF reached"),
             IMError::Io(e) => write!(f, "IO error: {}", e),
