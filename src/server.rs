@@ -5,7 +5,7 @@ use crate::wheel_timer::system_time_unix;
 use crate::SessionManager;
 use crate::{Connection, WheelTimer};
 use crate::{MessageSystem, TimerTask};
-use chrono::Local;
+use log::debug;
 use protobuf::Message;
 use std::net::TcpListener;
 use std::ops::Deref;
@@ -45,7 +45,7 @@ impl IMServer {
                         .unwrap()
                         .new_session(connection.clone());
 
-                    println!(
+                    debug!(
                         "new conn uid = {}, remote_address = {}",
                         session.get_uid(),
                         connection.remote_address()
@@ -115,10 +115,7 @@ impl TimerTask for ReaderIdleTimeoutTask {
         let next_delay =
             (READER_IDLE_TIME_SECONDS * 1000) as i64 - (system_time_unix() - last_read_time) as i64;
         if next_delay <= 0 {
-            println!(
-                "{} trigger read idle timeout check.",
-                Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
-            );
+            debug!("trigger read idle timeout check.");
             // shutdown the connection.
             self.connection.shutdown();
             // remove session
@@ -161,9 +158,8 @@ impl Handler {
             match self.connection.read_package() {
                 Ok(p) => match p.action {
                     HEARTBEAT => {
-                        println!(
-                            "{} 收到 uid = {} 心跳消息：{}",
-                            Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                        debug!(
+                            "收到 uid = {} 心跳消息：{}",
                             self.uid,
                             String::from_utf8_lossy(p.get_content())
                         );
@@ -185,18 +181,11 @@ impl Handler {
                         }
                     }
                     _ => {
-                        println!(
-                            "{} Unknown package action.",
-                            Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                        )
+                        debug!("Unknown package action.")
                     }
                 },
                 Err(_) => {
-                    println!(
-                        "{} 用户 uid = {} 离线.",
-                        Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                        self.uid
-                    );
+                    debug!("用户 uid = {} 离线.", self.uid);
                     self.connection.set_closed();
                     self.session_manager.lock().unwrap().remove(self.uid);
                     return;
@@ -249,7 +238,7 @@ impl Handler {
                 let _ = connection.write_package(package, Duration::new(10, 0));
             }
             None => {
-                println!("No user with uid = {} was found", mtu_pb.get_receiver_uid())
+                debug!("No user with uid = {} was found", mtu_pb.get_receiver_uid())
             }
         }
     }

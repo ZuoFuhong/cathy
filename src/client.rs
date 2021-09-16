@@ -5,15 +5,15 @@ use crate::wheel_timer;
 use crate::wheel_timer::system_time_unix;
 use crate::Connection;
 use crate::{TimerTask, WheelTimer};
-use chrono::Local;
+use log::{debug, info, warn};
 use protobuf::Message;
+use std::io;
+use std::io::BufRead;
 use std::net::TcpStream;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::Duration;
-use std::io;
-use std::io::{BufRead};
 
 /// Client链路write检测, 默认30秒, 30秒没有向链路写入任何数据时, Client会主动向Server发送心跳数据包.
 const WRITER_IDLE_TIME_SECONDS: u64 = 30;
@@ -48,9 +48,8 @@ impl IMClient {
                     match p.get_action() {
                         CONNECTED => {
                             let msg = ConnectedReply::parse_from_bytes(p.get_content()).unwrap();
-                            println!(
-                                "{} 连接成功 uid = {}, session_id = {}",
-                                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                            debug!(
+                                "连接成功 uid = {}, session_id = {}",
                                 msg.get_uid(),
                                 msg.get_session_id()
                             );
@@ -60,9 +59,8 @@ impl IMClient {
                         }
                         MSG_TO_USER => {
                             let msg = MsgToUser::parse_from_bytes(p.get_content()).unwrap();
-                            println!(
-                                "{} 收到用户 uid = {} 发来的消息：{}",
-                                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                            info!(
+                                "收到用户 uid = {} 发来的消息：{}",
                                 msg.get_sender_uid(),
                                 msg.get_content()
                             )
@@ -71,7 +69,7 @@ impl IMClient {
                 }
                 Err(e) => {
                     connection.set_closed();
-                    println!("Subscription interrupted {}", e);
+                    debug!("Subscription interrupted {}", e);
                     return;
                 }
             }
@@ -86,12 +84,12 @@ impl IMClient {
         for line in stdin.lock().lines() {
             let line = line.unwrap();
             if !line.starts_with("send") {
-                println!("Warning: 当前仅支持消息格式：send uid content");
+                warn!("仅支持消息命令：send uid content");
                 continue;
             }
             let items: Vec<&str> = line.split(' ').collect();
             if items.len() != 3 {
-                println!("Warning: 当前仅支持消息格式：send uid content");
+                warn!("仅支持消息命令：send uid content");
                 continue;
             }
             let mut uid = 0;
@@ -99,7 +97,7 @@ impl IMClient {
                 uid = v;
             }
             if uid == 0 {
-                println!("Warning: 当前仅支持消息格式：send uid content");
+                warn!("仅支持消息命令：send uid content");
                 continue;
             }
             let content = items.get(2).unwrap().to_string();
@@ -155,10 +153,7 @@ impl TimerTask for WriterIdleTimeoutTask {
         let next_delay = (WRITER_IDLE_TIME_SECONDS * 1000) as i64
             - (system_time_unix() - self.connection.get_last_write_time()) as i64;
         if next_delay <= 0 {
-            println!(
-                "{} trigger write idle timeout check.",
-                Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
-            );
+            debug!("trigger write idle timeout check.");
             // set a new timeout.
             self.timer.new_timeout(
                 Box::new(self.deref().clone()),

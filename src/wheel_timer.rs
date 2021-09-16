@@ -1,3 +1,4 @@
+use log::debug;
 use std::cell::{RefCell, RefMut};
 use std::error::Error;
 use std::ops::Deref;
@@ -213,7 +214,7 @@ impl Worker {
                 self.tick += 1;
             }
         }
-        println!("Worker shutdown")
+        debug!("Worker shutdown")
     }
 
     fn wait_for_next_tick(&self) -> u64 {
